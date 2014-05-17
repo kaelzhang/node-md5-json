@@ -1,0 +1,1 @@
+# md5-json [![NPM version](https://badge.fury.io/js/md5-json.svg)](http://badge.fury.io/js/md5-json) [![Build Status](https://travis-ci.org/kaelzhang/node-md5-json.svg?branch=master)](https://travis-ci.org/kaelzhang/node-md5-json) [![Dependency Status](https://gemnasium.com/kaelzhang/node-md5-json.svg)](https://gemnasium.com/kaelzhang/node-md5-json)
