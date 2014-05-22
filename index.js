@@ -1,9 +1,9 @@
 'use strict';
 
 var md5json = exports;
-md5.write = write;
-md5.read = read;
-md5.Reader = Reader;
+md5json.write = write;
+md5json.read = read;
+md5json.Reader = Reader;
 
 var crypto = require('crypto');
 var node_path = require('path');
@@ -18,14 +18,14 @@ var events = require('events');
 
 // Use dot file, so that most systems will treat it as an invisible file.
 md5json.CACHE_FILE = '.md5.json';
-md5._dirs = {};
+md5json._dirs = {};
 
 
 var REGEX_FILE = /[^\/]$/;
 // @param {path} dir absolute path
 function write (dir, callback) {
   dir = node_path.resolve(dir);
-  json_file = node_path.resolve(dir, md5json.CACHE_FILE);
+  var json_file = node_path.resolve(dir, md5json.CACHE_FILE);
   var json_dir = node_path.dirname(json_file);
 
   glob('**', {
@@ -72,11 +72,11 @@ function write (dir, callback) {
 // @param {path} dir absolute path of the dir to read files from
 function read (dir, options) {
   dir = node_path.resolve(dir);
-  var instance = md5json._dirs(dir);
+  var instance = md5json._dirs[dir];
 
   if (!instance) {
     instance = 
-    md5json._dirs(dir) =
+    md5json._dirs[dir] =
       new Reader(dir, options || {});
   }
 
@@ -139,13 +139,14 @@ Reader.prototype._get = function (path, callback) {
   }
 
   var self = this;
-  this._generateMD5(path, function (err, sum) {
+  md5json._generateMD5(path, function (err, sum) {
     if (err) {
       return callback(err);
     }
 
     self.data[relative] = sum;
     self.emit('_change');
+    callback(null, sum);
   });
 };
 
