@@ -27,8 +27,10 @@
     "url": "https://github.com/kaelzhang/node-md5-json/issues"
   },
   "devDependencies": {
+    "chai": "^1.8.0",
+    "fs-sync": "^0.2.4",
     "mocha": "^1.13.0",
-    "chai": "^1.8.0"
+    "tmp-sync": "^1.0.1"
   },
   "dependencies": {
     "async": "^0.9.0",
