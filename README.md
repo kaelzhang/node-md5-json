@@ -1,6 +1,6 @@
 # md5-json [![NPM version](https://badge.fury.io/js/md5-json.svg)](http://badge.fury.io/js/md5-json) [![Build Status](https://travis-ci.org/kaelzhang/node-md5-json.svg?branch=master)](https://travis-ci.org/kaelzhang/node-md5-json) [![Dependency Status](https://gemnasium.com/kaelzhang/node-md5-json.svg)](https://gemnasium.com/kaelzhang/node-md5-json)
 
-Creates md5.json to cache md5 hashes of all files.
+Creates md5.json to cache md5 hashes of all files. Designed for the situation of high concurrency.
 
 ## Installation
 
