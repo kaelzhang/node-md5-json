@@ -62,12 +62,25 @@ describe("md5json.read", function(){
     done();
   });
 
-  it("get(), without cache", function(done){
+  it("get(), without cache, with hight concurrency", function(done){
+    this.timeout(10000);
+
     var dir = play();
     var a = node_path.join(dir, 'a.js');
-    md5json.read(dir).get(a, function (err, md5) {
+
+    function cb (err, md5) {
       expect(md5).to.equal(DATA['a.js']);
-      done();
-    });
+      if (-- max === 0) {
+        done();
+      }
+    }
+
+    var reader = md5json.read(dir);
+    var concurrency = 10000;
+    var i = 0;
+    var max = concurrency;
+    while( i ++ < concurrency){
+      reader.get(a, cb);
+    }
   });
 });
