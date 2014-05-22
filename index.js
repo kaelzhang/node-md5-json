@@ -13,7 +13,7 @@ var _ = require('underscore');
 var async = require('async');
 var fs = require('fs');
 var util = require('util');
-var events = require('events');
+var events = require('events').EventEmitter;
 
 
 // Use dot file, so that most systems will treat it as an invisible file.
