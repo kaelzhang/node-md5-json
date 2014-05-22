@@ -63,7 +63,7 @@ describe("md5json.read", function(){
   });
 
   it("get(), without cache, with hight concurrency", function(done){
-    this.timeout(10000);
+    this.timeout(20000);
 
     var dir = play();
     var a = node_path.join(dir, 'a.js');

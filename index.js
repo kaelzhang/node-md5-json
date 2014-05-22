@@ -89,6 +89,7 @@ function Reader (dir, options) {
   this.file = node_path.join(this.dir, md5json.CACHE_FILE);
   this._options(options);
   this._getJSON();
+  this._queue = {};
 
   // Set to zero for unlimited listeners
   this.setMaxListeners(0);
@@ -150,13 +151,18 @@ Reader.prototype._get = function (path, callback) {
 Reader.prototype._generateMD5 = function(path, relative, callback) {
   var event = '_md5:' + path;
   var self = this;
-  var event_count = events.listenerCount(this, event);
+
+  // For 10000 concurrency.
+  // Imitating EventEmitter instead of EE saves one third of the entire time
+  // 3500ms -> 2000ms
+  var listeners = this._queue[event] || (this._queue[event] = []);
+  var listeners_count = listeners.length;
 
   // It costs a lot to generate the md5 hash from a file on hardware,
   // so just queue it.
-  this.once(event, callback);
+  listeners.push(callback);
 
-  if (event_count === 0) {
+  if (listeners_count === 0) {
     md5json._generateMD5(path, function (err, sum) {
       if (err) {
         // if there is error, never emit '_change' event.
@@ -165,7 +171,15 @@ Reader.prototype._generateMD5 = function(path, relative, callback) {
 
       self.data[relative] = sum;
       self.emit('_change');
-      self.emit(event, err, sum);
+
+      // Saves 100ms to use `for` instead of `array.forEach`
+      var i = 0;
+      var len = listeners.length;
+
+      for (; i < len; i ++){
+        listeners[i](err, sum);
+      }
+      listeners.length = 0;
     });
   }
 };
