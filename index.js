@@ -133,6 +133,7 @@ Reader.prototype._getJSON = function() {
 
 
 Reader.prototype._get = function (path, callback) {
+  path = node_path.resolve(this.dir, path);
   var relative = node_path.relative(this.dir, path);
   if (this.data[relative]) {
     return callback(null, this.data[relative]);
