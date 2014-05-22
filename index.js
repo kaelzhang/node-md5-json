@@ -86,35 +86,79 @@ function read (dir, options) {
 
 function Reader (dir, options) {
   this.dir = dir;
+  this.file = node_path.join(this.dir, md5json.CACHE_FILE);
+  this._options(options);
+  this._getJSON();
+
+  var debounced = _.debounce(this._save.bind(this), options.save_interval);
+  this.on('_change', debounced);
 }
+
 util.inherits(Reader, events);
 
 
-Reader.prototype.get = function(path, callback) {
-  this._prepare
+Reader.prototype._options = function(options) {
+  this.options = options;
+  options.save_interval = options.save_interval || 500;
 };
 
 
-Reader.prototype._getJSON = function(callback) {
-  jsonfile.readFile(this.path, function (err, json) {
-    if (err) {
-      return callback(err);
-    }
+Reader.prototype.get = function(path, callback) {
+  this._prepare(function () {
+    this._get(path, callback);
+  }.bind(this));
+};
 
-    this.data = json;
-    callback();
+
+Reader.prototype._prepare = function(callback) {
+  if (this.ready) {
+    return callback();
+  }
+  this.once('_ready', callback);
+};
+
+
+Reader.prototype._getJSON = function() {
+  var self = this;
+  jsonfile.readFile(this.file, function (err, json) {
+    // if (err) {
+    //   // fail silently
+    // }
+
+    self.data = json || {};
+    self.ready = true;
+    self.emit('_ready');
   });
 };
 
 
 Reader.prototype._get = function (path, callback) {
   var relative = node_path.relative(this.dir, path);
-  var data = this.data;
-  if (!this.data) {
-    return null;
+  if (this.data[relative]) {
+    return callback(null, this.data[relative]);
   }
 
-  return this.data[path] || null;
+  var self = this;
+  this._generateMD5(path, function (err, sum) {
+    if (err) {
+      return callback(err);
+    }
+
+    self.data[relative] = sum;
+    self.emit('_change');
+  });
+};
+
+
+Reader.prototype._save = function() {
+  if (this.saving) {
+    return;
+  }
+
+  var self = this;
+  jsonfile.writeFile(this.file, JSON.stringify(this.data, null, 2), function (err) {
+    self.saving = false;
+  });
 };
 
 
