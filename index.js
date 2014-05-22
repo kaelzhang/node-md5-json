@@ -90,6 +90,9 @@ function Reader (dir, options) {
   this._options(options);
   this._getJSON();
 
+  // Set to zero for unlimited listeners
+  this.setMaxListeners(0);
+
   var debounced = _.debounce(this._save.bind(this), options.save_interval);
   this.on('_change', debounced);
 }
@@ -140,15 +143,31 @@ Reader.prototype._get = function (path, callback) {
   }
 
   var self = this;
-  md5json._generateMD5(path, function (err, sum) {
-    if (err) {
-      return callback(err);
-    }
+  this._generateMD5(path, relative, callback);
+};
 
-    self.data[relative] = sum;
-    self.emit('_change');
-    callback(null, sum);
-  });
+
+Reader.prototype._generateMD5 = function(path, relative, callback) {
+  var event = '_md5:' + path;
+  var self = this;
+  var event_count = events.listenerCount(this, event);
+
+  // It costs a lot to generate the md5 hash from a file on hardware,
+  // so just queue it.
+  this.once(event, callback);
+
+  if (event_count === 0) {
+    md5json._generateMD5(path, function (err, sum) {
+      if (err) {
+        // if there is error, never emit '_change' event.
+        return self.emit(event, err);
+      }
+
+      self.data[relative] = sum;
+      self.emit('_change');
+      self.emit(event, err, sum);
+    });
+  }
 };
 
 
