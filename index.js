@@ -19,6 +19,7 @@ var events = require('events').EventEmitter;
 // Use dot file, so that most systems will treat it as an invisible file.
 md5json.CACHE_FILE = '.md5.json';
 md5json._dirs = {};
+md5json.SAVE_INTERVAL = 500;
 
 
 var REGEX_FILE = /[^\/]$/;
@@ -103,7 +104,7 @@ util.inherits(Reader, events);
 
 Reader.prototype._options = function(options) {
   this.options = options;
-  options.save_interval = options.save_interval || 500;
+  options.save_interval = options.save_interval || md5json.SAVE_INTERVAL;
 };
 
 
@@ -191,7 +192,7 @@ Reader.prototype._save = function() {
   }
 
   var self = this;
-  jsonfile.writeFile(this.file, JSON.stringify(this.data, null, 2), function (err) {
+  jsonfile.writeFile(this.file, this.data, function (err) {
     self.saving = false;
   });
 };

@@ -83,4 +83,23 @@ describe("md5json.read", function(){
       reader.get(a, cb);
     }
   });
+
+  it("get(), without cache, test cache", function(done){
+    this.timeout(10000);
+
+    var dir = play();
+    var a = node_path.join(dir, 'a.js');
+    var reader = md5json.read(dir);
+
+    reader.get(a, function (err, md5) {
+      expect(md5).to.equal(DATA['a.js']);
+      setTimeout(function () {
+        var md5_file = node_path.join(dir, '.md5.json');
+        jf.readFile(md5_file, function (err, json) {
+          expect(json['a.js']).to.equal(md5);
+          done();
+        });
+      }, md5json.SAVE_INTERVAL * 2);
+    });
+  });
 });
