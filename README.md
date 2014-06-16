@@ -21,7 +21,9 @@ var md5json = require('md5-json');
 - callback `function(err, md5sum)`
 - err `Error`
 - md5sum `String` the md5sum of the file
-- options `Object=` not supported yet
+- options `Object=`
+  - no_cache `Boolean=false` Default to `false`. If true, `md5json` will never save cache. NEVER use this option for production environment.
+  - save_interval `Number=500` interval of miniseconds to save caches.
 
 ```js
 md5json
@@ -35,6 +37,15 @@ Reads the md5 hashes of any files based on the cache inside the `dir`.
 
 If the md5 hash is not in the cache, `md5json` will try to generate the md5 value from the file. If succeeded, the `md5sum` will passed to `callback` and `md5json` will save the cache silently without your concern.
 
+
+#### Global options
+
+Set the constants will change the options of all newly-created instances of `md5json.read()`;
+
+```js
+md5json.SAVE_INTERVAL = 1000;
+md5json.NO_CACHE = true;
+```
 
 ### md5json.write(dir, callback)
 
