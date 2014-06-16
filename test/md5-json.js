@@ -62,27 +62,27 @@ describe("md5json.read", function(){
     done();
   });
 
-  it("get(), without cache, with hight concurrency", function(done){
-    this.timeout(20000);
+  // it("get(), without cache, with hight concurrency", function(done){
+  //   this.timeout(20000);
 
-    var dir = play();
-    var a = node_path.join(dir, 'a.js');
+  //   var dir = play();
+  //   var a = node_path.join(dir, 'a.js');
 
-    function cb (err, md5) {
-      expect(md5).to.equal(DATA['a.js']);
-      if (-- max === 0) {
-        done();
-      }
-    }
+  //   function cb (err, md5) {
+  //     expect(md5).to.equal(DATA['a.js']);
+  //     if (-- max === 0) {
+  //       done();
+  //     }
+  //   }
 
-    var reader = md5json.read(dir);
-    var concurrency = 10000;
-    var i = 0;
-    var max = concurrency;
-    while( i ++ < concurrency){
-      reader.get(a, cb);
-    }
-  });
+  //   var reader = md5json.read(dir);
+  //   var concurrency = 10000;
+  //   var i = 0;
+  //   var max = concurrency;
+  //   while( i ++ < concurrency){
+  //     reader.get(a, cb);
+  //   }
+  // });
 
   it("get(), without cache, test cache", function(done){
     this.timeout(10000);
@@ -90,15 +90,47 @@ describe("md5json.read", function(){
     var dir = play();
     var a = node_path.join(dir, 'a.js');
     var reader = md5json.read(dir);
+    var md5;
+
+    reader.on('saved', function () {
+      var md5_file = node_path.join(dir, '.md5.json');
+      jf.readFile(md5_file, function (err, json) {
+        expect(json['a.js']).to.equal(md5);
+        done();
+      });
+    });
+
+    reader.get(a, function (err, m) {
+      expect(m).to.equal(DATA['a.js']);
+      md5 = m;
+    });
+  });
+
+  it("get(), options.no_cache = true, test cache", function(done){
+    this.timeout(10000);
+
+    var dir = play();
+    var a = node_path.join(dir, 'a.js');
+    var reader = md5json.read(dir, {
+      no_cache: true
+    });
 
     reader.get(a, function (err, md5) {
       expect(md5).to.equal(DATA['a.js']);
       setTimeout(function () {
         var md5_file = node_path.join(dir, '.md5.json');
-        jf.readFile(md5_file, function (err, json) {
-          expect(json['a.js']).to.equal(md5);
+        var exists = fs.exists(md5_file);
+        expect(exists).to.equal(false);
+
+        // refresh a
+        fs.write(a, 'abc');
+        reader.get(a, function (err, md5) {
+          expect(err).not.to.equal(md5);
+          expect(md5).not.to.equal(DATA['a.js']);
+
           done();
         });
+
       }, md5json.SAVE_INTERVAL * 2);
     });
   });
