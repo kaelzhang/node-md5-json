@@ -89,14 +89,20 @@ function Reader (dir, options) {
   this.dir = dir;
   this.file = node_path.join(this.dir, md5json.CACHE_FILE);
   this._options(options);
-  this._getJSON();
   this._queue = {};
+  this._getJSON();
 
   // Set to zero for unlimited listeners
   this.setMaxListeners(0);
 
-  var debounced = _.debounce(this._save.bind(this), options.save_interval);
-  this.on('_change', debounced);
+  if (!options.no_cache) {
+    var debounced = _.debounce(this._save.bind(this), options.save_interval);
+    this.on('_change', debounced);
+
+    this.__generateMD5 = this._generateMD5;
+  } else {
+    this.__generateMD5 = this._generateMD5NoQueue;
+  }
 }
 
 util.inherits(Reader, events);
@@ -105,6 +111,9 @@ util.inherits(Reader, events);
 Reader.prototype._options = function(options) {
   this.options = options;
   options.save_interval = options.save_interval || md5json.SAVE_INTERVAL;
+  options.no_cache = 'no_cache' in options
+    ? options.no_cache
+    : md5json.NO_CACHE;
 };
 
 
@@ -119,11 +128,13 @@ Reader.prototype._prepare = function(callback) {
   if (this.ready) {
     return callback();
   }
-  this.once('_ready', callback);
+
+  this._queue.ready.push(callback);
 };
 
 
 Reader.prototype._getJSON = function() {
+  this._queue.ready = [];
   var self = this;
   jsonfile.readFile(this.file, function (err, json) {
     // if (err) {
@@ -132,7 +143,10 @@ Reader.prototype._getJSON = function() {
 
     self.data = json || {};
     self.ready = true;
-    self.emit('_ready');
+    self._queue.ready.forEach(function (callback) {
+      callback();
+    });
+    self._queue.ready.length = 0;
   });
 };
 
@@ -145,7 +159,12 @@ Reader.prototype._get = function (path, callback) {
   }
 
   var self = this;
-  this._generateMD5(path, relative, callback);
+  this.__generateMD5(path, relative, callback);
+};
+
+
+Reader.prototype._generateMD5NoQueue = function(path, relative, callback) {
+  md5json._generateMD5(path, callback);
 };
 
 
@@ -167,22 +186,31 @@ Reader.prototype._generateMD5 = function(path, relative, callback) {
     md5json._generateMD5(path, function (err, sum) {
       if (err) {
         // if there is error, never emit '_change' event.
-        return self.emit(event, err);
+        return self._simpleEmit(event, err);
       }
 
       self.data[relative] = sum;
       self.emit('_change');
-
-      // Saves 100ms to use `for` instead of `array.forEach`
-      var i = 0;
-      var len = listeners.length;
-
-      for (; i < len; i ++){
-        listeners[i](err, sum);
-      }
-      listeners.length = 0;
+      self._simpleEmit(event, null, sum);
     });
   }
+};
+
+
+Reader.prototype._simpleEmit = function (event, a, b) {
+  var listeners = this._queue[event];
+  if (!listeners) {
+    return;
+  }
+
+  // Saves 100ms to use `for` instead of `array.forEach`
+  var i = 0;
+  var len = listeners.length;
+
+  for (; i < len; i ++){
+    listeners[i](a, b);
+  }
+  listeners.length = 0;
 };
 
 
@@ -190,10 +218,12 @@ Reader.prototype._save = function() {
   if (this.saving) {
     return;
   }
+  this.saving = true;
 
   var self = this;
   jsonfile.writeFile(this.file, this.data, function (err) {
     self.saving = false;
+    self.emit('saved');
   });
 };
 
